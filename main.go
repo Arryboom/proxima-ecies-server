@@ -57,7 +57,8 @@ func EncryptMessage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	messageBytes := []byte(message)
-	peerPrivateKey, err := LoadPrivateKey("./server.key.pem")
+	peerPublicKey, err := LoadPublicKey("./server.pub.pem")
+	peerPublicKeyEC := ImportECDSAPublic(peerPublicKey)
 
 	if err != nil {
 		fmt.Println(err)
@@ -72,8 +73,7 @@ func EncryptMessage(w http.ResponseWriter, req *http.Request) {
 		sharedParam1 = nil
 	}
 
-	peerPublicKey := ImportECDSAPublic(&peerPrivateKey.PublicKey)
-	encrypted, err := Encrypt(rand.Reader, peerPublicKey, messageBytes, sharedParam1, nil)
+	encrypted, err := Encrypt(rand.Reader, peerPublicKeyEC, messageBytes, sharedParam1, nil)
 	baseSF := base64.StdEncoding.EncodeToString(encrypted)
 
 	if w != nil {
