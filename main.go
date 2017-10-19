@@ -14,8 +14,7 @@ import (
 func DecryptMessage(w http.ResponseWriter, req *http.Request) {
 
 	message, err := base64.StdEncoding.DecodeString(req.URL.Query().Get("message"))
-	sharedParam1, err := base64.StdEncoding.DecodeString(req.URL.Query().Get("s1"))
-	sharedParam2, err := base64.StdEncoding.DecodeString(req.URL.Query().Get("s2"))
+	sharedParam1, err := base64.StdEncoding.DecodeString(req.URL.Query().Get("iv"))
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -32,7 +31,7 @@ func DecryptMessage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	ownPrivateKeyEC := ImportECDSA(ownPrivateKey)
-	decrypted, err := ownPrivateKeyEC.Decrypt(rand.Reader, message, sharedParam1, sharedParam2)
+	decrypted, err := ownPrivateKeyEC.Decrypt(rand.Reader, message, sharedParam1, nil)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -64,31 +63,28 @@ func EncryptMessage(w http.ResponseWriter, req *http.Request) {
 		fmt.Println(err)
 	}
 
-	sharedParam1 := make([]byte, 16)
-	sharedParam2 := make([]byte, 16)
+	var sharedParam1 []byte
 
-	rand.Read(sharedParam1)
-	rand.Read(sharedParam2)
+	if req.URL.Query().Get("iv") != "" {
+		sharedParam1 = make([]byte, 16)
+		rand.Read(sharedParam1)
+	} else {
+		sharedParam1 = nil
+	}
 
 	peerPublicKey := ImportECDSAPublic(&peerPrivateKey.PublicKey)
-	encrypted, err := Encrypt(rand.Reader, peerPublicKey, messageBytes, sharedParam1, sharedParam2)
+	encrypted, err := Encrypt(rand.Reader, peerPublicKey, messageBytes, sharedParam1, nil)
 	baseSF := base64.StdEncoding.EncodeToString(encrypted)
 
 	if w != nil {
 		w.Header().Set("Content-type", "text/plain")
 		_, _ = w.Write([]byte("Plain Base64:\n"))
 		_, _ = w.Write([]byte("Ciphertext: " + baseSF + "\n"))
-		_, _ = w.Write([]byte("Shared Param 1: " + base64.StdEncoding.EncodeToString(sharedParam1) + "\n"))
-		_, _ = w.Write([]byte("Shared Param 2: " + base64.StdEncoding.EncodeToString(sharedParam2) + "\n"))
+		_, _ = w.Write([]byte("Shared Param (IV): " + base64.StdEncoding.EncodeToString(sharedParam1) + "\n"))
 		_, _ = w.Write([]byte("\n\nURL-encoded:\n"))
 		_, _ = w.Write([]byte("Ciphertext: " + url.QueryEscape(baseSF) + "\n"))
-		_, _ = w.Write([]byte("Shared Param 1: " + url.QueryEscape(base64.StdEncoding.EncodeToString(sharedParam1)) + "\n"))
-		_, _ = w.Write([]byte("Shared Param 2: " + url.QueryEscape(base64.StdEncoding.EncodeToString(sharedParam2)) + "\n"))
+		_, _ = w.Write([]byte("Shared Param (IV): " + url.QueryEscape(base64.StdEncoding.EncodeToString(sharedParam1)) + "\n"))
 	}
-
-	privateKey := ImportECDSA(peerPrivateKey)
-	decrypted, _ := privateKey.Decrypt(rand.Reader, encrypted, nil, nil)
-	fmt.Println(decrypted)
 
 }
 
