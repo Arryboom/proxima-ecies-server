@@ -1,4 +1,4 @@
-# pexeso-ecies-server
+# smartbox-ecies-server
 A proof-of-concept go server for ECIES testing
 
 Run `./app` and navigate to `http://localhost:2015`

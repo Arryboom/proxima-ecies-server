@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/O2-Czech-Republic/pexeso-ecies-go"
+	"github.com/O2-Czech-Republic/smartbox-ecies-go"
 	"github.com/gorilla/mux"
 )
 
